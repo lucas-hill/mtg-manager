@@ -36,7 +36,6 @@ func New(ctx context.Context, databaseURL string) (*Store, error) {
 		return nil, fmt.Errorf("pinging dtabase: %w", err)
 	}
 
-	//NOTE: Why does this get returned with db as the pool?
 	return &Store{pool: pool, db: pool}, nil
 }
 
