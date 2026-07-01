@@ -44,12 +44,7 @@ func (s *Store) GetUserByEmail(ctx context.Context, email string) (User, error) 
 	return u, nil
 }
 
-type CreateUserParams struct {
-	Name  string
-	Email string
-}
-
-func (s *Store) Createuser(ctx context.Context, params CreateUserParams) (User, error) {
+func (s *Store) CreateUser(ctx context.Context, email, name string) (User, error) {
 	const query = `
 		INSERT INTO users(email, name)
 		VALUES ($1, $2)
@@ -57,9 +52,11 @@ func (s *Store) Createuser(ctx context.Context, params CreateUserParams) (User, 
 		`
 
 	var u User
-	err := s.db.QueryRow(ctx, query, params.Email, params.Name).Scan(&u.ID, &u.Email, &u.Name, &u.CreatedAt)
+	err := s.db.QueryRow(ctx, query, email, name).Scan(&u.ID, &u.Email, &u.Name, &u.CreatedAt)
 	if err != nil {
-		var pgErr *pgconn.PgErr
+		var pgErr *pgconn.PgError
+
+		// 23505 = unique_violation; here it can only be the email UNIQUE index.
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return User{}, ErrEmailTaken
 		}
@@ -68,4 +65,43 @@ func (s *Store) Createuser(ctx context.Context, params CreateUserParams) (User, 
 	}
 
 	return u, nil
+}
+
+func (s *Store) CreateUserWithPassword(ctx context.Context, email, name, passwordHash string) (User, error) {
+	var user User
+	err := s.WithTx(ctx, func(tx *Store) error {
+		u, err := tx.CreateUser(ctx, email, name)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.CreatePasswordIdentity(ctx, u.ID, passwordHash); err != nil {
+			return err
+		}
+		user = u
+		return nil
+	})
+	if err != nil {
+		return User{}, err
+	}
+	return user, nil
+}
+
+func (s *Store) GetPasswordIdentityByEmail(ctx context.Context, email string) (User, string, error) {
+	const query = `
+		SELECT u.id, u.email, u.name, u.created_at, i.password_hash
+		FROM users u
+		JOIN identities i ON i.user_id = u.id
+		WHERE u.email = $1 AND i.provider = 'password'
+		`
+
+	var u User
+	var hash string
+	err := s.db.QueryRow(ctx, query, email).Scan(&u.ID, &u.Email, &u.Name, &u.CreatedAt, &hash)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return User{}, "", ErrUserNotFound
+		}
+		return User{}, "", err
+	}
+	return u, hash, nil
 }
