@@ -45,7 +45,7 @@ func HashPassword(password string) (string, error) {
 	b64Key := base64.RawStdEncoding.EncodeToString(key)
 
 	encoded := fmt.Sprintf(
-		"$argon2id$v=%d$m=%d, t=%d,p=%d$%s$%s",
+		"$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		argon2.Version, p.memory, p.iterations, p.parallelism, b64Salt, b64Key,
 	)
 	return encoded, nil
