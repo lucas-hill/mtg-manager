@@ -4,7 +4,8 @@
 !.env.example
 
 # auth signing keys
-auth/keys/
+keys/*
+auth/keys/*
 
 # Go
 auth/bin/
@@ -18,3 +19,5 @@ catalog/dist/
 *.swp
 .idea/
 .vscode/
+
+
