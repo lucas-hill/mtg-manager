@@ -38,7 +38,7 @@ func NewService(s UserStore, signer TokenSigner, refreshTTL time.Duration) *Serv
 func (svc *Service) issueTokens(ctx context.Context, user store.User) (AuthResult, error) {
 	access, err := svc.signer.Sign(user.ID)
 	if err != nil {
-		return AuthResult{}, nil
+		return AuthResult{}, fmt.Errorf("signing the token: %w", err)
 	}
 
 	refreshPlain, refreshHash, err := tokens.GenerateRefreshToken()
