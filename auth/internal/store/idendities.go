@@ -15,7 +15,7 @@ type Identity struct {
 	ID           string
 	UserID       string
 	Provider     string
-	ProficerID   *string
+	ProviderID   *string
 	PasswordHash *string
 	CreatedAt    time.Time
 }
@@ -28,7 +28,7 @@ func (s *Store) CreatePasswordIdentity(ctx context.Context, userID, passwordHash
 
 	var idn Identity
 	err := s.db.QueryRow(ctx, query, userID, passwordHash).
-		Scan(&idn.ID, &idn.UserID, &idn.Provider, &idn.PasswordHash, &idn.CreatedAt)
+		Scan(&idn.ID, &idn.UserID, &idn.Provider, &idn.ProviderID, &idn.PasswordHash, &idn.CreatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
