@@ -22,24 +22,24 @@ func init() {
 	dummyHash = h
 }
 
-func (svc *Service) Login(ctx context.Context, email, password string) (store.User, error) {
+func (svc *Service) Login(ctx context.Context, email, password string) (AuthResult, error) {
 	user, hash, err := svc.store.GetPasswordIdentityByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, store.ErrUserNotFound) {
 			// This spends the same time as a real verification then fails
 			_, _ = VerifyPassword(password, dummyHash)
-			return store.User{}, err
+			return AuthResult{}, err
 		}
-		return store.User{}, fmt.Errorf("looking up identity: %w", err)
+		return AuthResult{}, fmt.Errorf("looking up identity: %w", err)
 	}
 
 	ok, err := VerifyPassword(password, hash)
 	if err != nil {
-		return store.User{}, fmt.Errorf("verifying password: %w", err)
+		return AuthResult{}, fmt.Errorf("verifying password: %w", err)
 	}
 	if !ok {
-		return store.User{}, ErrInvalidCredentials
+		return AuthResult{}, ErrInvalidCredentials
 	}
 
-	return user, nil
+	return svc.issueTokens(ctx, user)
 }
